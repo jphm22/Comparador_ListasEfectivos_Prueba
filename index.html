@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comparador visual de listas</title>
+  <style>
+    :root{
+      --bg:#f4f7fb; --card:#fff; --text:#162033; --muted:#667085;
+      --primary:#2563eb; --primary-soft:#dbeafe; --border:#d9e0ea;
+      --ok:#16a34a; --ok-soft:#dcfce7; --warn:#f59e0b; --warn-soft:#fef3c7;
+      --danger:#dc2626; --danger-soft:#fee2e2; --shadow:0 10px 30px rgba(16,24,40,.08);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .app{max-width:1500px;margin:auto;padding:22px}
+    header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}
+    h1{font-size:26px;margin:0 0 6px} .subtitle{color:var(--muted);margin:0}
+    .badge{background:#eef4ff;color:#1849a9;border:1px solid #c7d7fe;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;white-space:nowrap}
+    .panel{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+    .controls{padding:16px;margin-bottom:18px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end}
+    .options{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+    label{font-size:12px;font-weight:700;color:#344054;display:block;margin-bottom:6px}
+    select,input[type="text"]{width:100%;min-width:165px;padding:10px 12px;border:1px solid #cfd7e3;border-radius:10px;background:#fff;color:var(--text);outline:none}
+    select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px #dbeafe}
+    .check{display:flex;align-items:center;gap:8px;height:40px;padding:0 4px;color:#344054;font-size:13px}.check input{accent-color:var(--primary)}
+    button,.file-label{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer;transition:.15s;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+    button:hover,.file-label:hover{transform:translateY(-1px)}
+    .primary{background:var(--primary);color:#fff}.secondary{background:#eef2f7;color:#344054}.danger{background:var(--danger-soft);color:#b42318}.filter-btn.active{background:#172554;color:#fff;box-shadow:0 0 0 3px #bfdbfe}.hidden-row{display:none}
+    .file-label{background:#eef2f7;color:#344054}.file-label input{display:none}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:12px;margin-bottom:18px}
+    .stat{padding:15px}.stat small{color:var(--muted);font-weight:600}.stat strong{display:block;font-size:25px;margin-top:6px}.stat.ok{border-left:5px solid var(--ok)}.stat.bad{border-left:5px solid var(--danger)}
+    .lists{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+    .list-panel{overflow:hidden}.list-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .list-head h2{font-size:17px;margin:0}.list-head span{font-size:12px;color:var(--muted)}
+    .table-wrap{overflow:auto;max-height:62vh;min-height:420px}
+    table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+    th{position:sticky;top:0;z-index:2;background:#f8fafc;color:#475467;text-align:left;padding:10px;border-bottom:1px solid var(--border);white-space:nowrap}
+    td{padding:9px 10px;border-bottom:1px solid #eef1f5;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+    tbody tr{cursor:pointer;transition:.12s}tbody tr:hover{background:#f5f8ff}
+    tr.match{background:var(--ok-soft)}tr.no-match{background:var(--danger-soft)}
+    tr.selected{outline:3px solid var(--primary);outline-offset:-3px;position:relative;z-index:1}
+    tr.linked{animation:pulse 1s ease 2;box-shadow:inset 5px 0 var(--ok)}
+    td.rownum{color:#98a2b3;width:44px;text-align:right;background:#fafbfc}
+    .legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);padding:12px 16px;border-top:1px solid var(--border)}
+    .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px}.green{background:var(--ok)}.red{background:var(--danger)}.blue{background:var(--primary)}
+    .empty{text-align:center;padding:50px;color:var(--muted)}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#101828;color:#fff;padding:11px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.25s;z-index:20}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    dialog{border:0;border-radius:16px;width:min(900px,92vw);padding:0;box-shadow:0 24px 70px #10182844}dialog::backdrop{background:#10182888}
+    .modal-head{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}.modal-head h3{margin:0}.modal-body{padding:18px}
+    textarea{width:100%;height:270px;resize:vertical;border:1px solid var(--border);border-radius:12px;padding:12px;font-family:ui-monospace,Consolas,monospace;line-height:1.45}
+    .hint{color:var(--muted);font-size:12px;margin-top:7px}.modal-actions{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+    @media(max-width:900px){.controls{grid-template-columns:1fr}.actions{justify-content:flex-start}.lists{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}header{flex-direction:column}.table-wrap{max-height:50vh}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>Comparador visual de listas</h1><p class="subtitle">Compara dos listas de 3 columnas y localiza visualmente cada coincidencia.</p></div>
+    <div class="badge">HTML local · sin enviar datos</div>
+  </header>
+
+  <section class="panel controls">
+    <div class="options">
+      <div><label for="colA">Columna de la Lista A</label><select id="colA"></select></div>
+      <div><label for="colB">Columna de la Lista B</label><select id="colB"></select></div>
+      <div><label for="mode">Tipo de comparación</label><select id="mode"><option value="exact">Coincidencia exacta</option><option value="contains">Contiene el texto</option></select></div>
+      <label class="check"><input id="caseSensitive" type="checkbox"> Distinguir mayúsculas</label>
+      <label class="check"><input id="trim" type="checkbox" checked> Ignorar espacios extremos</label>
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="openPaste('A')">✎ Pegar Lista A</button>
+      <button class="secondary" onclick="openPaste('B')">✎ Pegar Lista B</button>
+      <label class="file-label">↑ Cargar CSV/TXT<input id="fileInput" type="file" accept=".csv,.txt" multiple></label>
+      <button class="primary" onclick="compareLists()">⇄ Comparar</button>
+      <button id="showAllBtn" class="secondary filter-btn active" onclick="filterRows('all')">☷ Mostrar todos</button>
+      <button id="onlyABtn" class="danger filter-btn" onclick="filterRows('onlyA')">A− Solo no coinciden en A</button>
+      <button id="onlyBBtn" class="danger filter-btn" onclick="filterRows('onlyB')">B− Solo no coinciden en B</button>
+      <button class="danger" onclick="resetDemo()">↺ Demo</button>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="panel stat"><small>Filas Lista A</small><strong id="countA">0</strong></div>
+    <div class="panel stat"><small>Filas Lista B</small><strong id="countB">0</strong></div>
+    <div class="panel stat ok"><small>Coincidencias en A</small><strong id="matches">0</strong></div>
+    <div class="panel stat bad"><small>Sin coincidencia en A</small><strong id="missing">0</strong></div>
+  </section>
+
+  <main class="lists">
+    <section class="panel list-panel"><div class="list-head"><div><h2>Lista A</h2><span>Haz clic en una fila para buscar la equivalente</span></div></div><div class="table-wrap"><table id="tableA"></table></div><div class="legend"><span><i class="dot green"></i>Coincide</span><span><i class="dot red"></i>No coincide</span><span><i class="dot blue"></i>Seleccionada</span></div></section>
+    <section class="panel list-panel"><div class="list-head"><div><h2>Lista B</h2><span>La coincidencia se seleccionará y aparecerá en pantalla</span></div></div><div class="table-wrap"><table id="tableB"></table></div><div class="legend"><span><i class="dot green"></i>Coincide</span><span><i class="dot red"></i>No coincide</span><span><i class="dot blue"></i>Seleccionada</span></div></section>
+  </main>
+</div>
+
+<dialog id="pasteDialog">
+  <div class="modal-head"><h3 id="pasteTitle">Pegar lista</h3><button class="secondary" onclick="pasteDialog.close()">✕</button></div>
+  <div class="modal-body"><textarea id="pasteArea" placeholder="Código,Nombre,Estado&#10;A001,Elemento 1,Activo"></textarea><div class="hint">Acepta datos separados por coma, punto y coma o tabulación. La primera fila se usa como encabezado.</div></div>
+  <div class="modal-actions"><button class="secondary" onclick="pasteDialog.close()">Cancelar</button><button class="primary" onclick="applyPaste()">Cargar datos</button></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const demoA = [
+ ['Código','Nombre','Estado'],['A001','Tornillo M8','Activo'],['A002','Tuerca M8','Activo'],['A003','Arandela plana','Inactivo'],['A004','Perno hexagonal','Activo'],['A005','Abrazadera 20 mm','Activo'],['A006','Rodamiento 6202','Revisión'],['A007','Correa industrial','Activo'],['A008','Filtro de aire','Activo'],['A009','Válvula 1/2','Inactivo'],['A010','Sensor térmico','Activo']
+];
+const demoB = [
+ ['SKU','Descripción','Situación'],['B101','Filtro de aire','Disponible'],['B102','Tornillo M8','Disponible'],['B103','Sensor térmico','Disponible'],['B104','Tuerca M8','Agotado'],['B105','Motor 2HP','Disponible'],['B106','Rodamiento 6202','Disponible'],['B107','Válvula 1/2','Disponible'],['B108','Abrazadera 20 mm','Agotado'],['B109','Interruptor','Disponible'],['B110','Perno hexagonal','Disponible']
+];
+let dataA, dataB, pasteTarget='A', matchMapA=new Map(), matchMapB=new Map(), currentFilter='all';
+
+function clone(v){return JSON.parse(JSON.stringify(v))}
+function resetDemo(){dataA=clone(demoA);dataB=clone(demoB);setupColumns();compareLists();toast('Datos de demostración restaurados')}
+function headers(data){return data[0]||[]}
+function rows(data){return data.slice(1)}
+function setupColumns(){
+ const a=document.getElementById('colA'), b=document.getElementById('colB'); const oldA=a.value, oldB=b.value;
+ a.innerHTML=headers(dataA).map((h,i)=>`<option value="${i}">${escapeHtml(h||'Columna '+(i+1))}</option>`).join('');
+ b.innerHTML=headers(dataB).map((h,i)=>`<option value="${i}">${escapeHtml(h||'Columna '+(i+1))}</option>`).join('');
+ a.value=[...a.options].some(o=>o.value===oldA)?oldA:String(Math.min(1,a.options.length-1));
+ b.value=[...b.options].some(o=>o.value===oldB)?oldB:String(Math.min(1,b.options.length-1));
+}
+function normalize(v){let s=String(v??'');if(document.getElementById('trim').checked)s=s.trim();if(!document.getElementById('caseSensitive').checked)s=s.toLocaleLowerCase('es');return s}
+function isMatch(x,y){x=normalize(x);y=normalize(y);if(!x||!y)return false;return document.getElementById('mode').value==='contains'?x.includes(y)||y.includes(x):x===y}
+function compareLists(){
+ const ca=+colA.value, cb=+colB.value, ra=rows(dataA), rb=rows(dataB); matchMapA=new Map();matchMapB=new Map();
+ ra.forEach((r,i)=>{const list=[];rb.forEach((s,j)=>{if(isMatch(r[ca],s[cb])){list.push(j);if(!matchMapB.has(j))matchMapB.set(j,[]);matchMapB.get(j).push(i)}});if(list.length)matchMapA.set(i,list)});
+ renderTable('A',dataA,matchMapA);renderTable('B',dataB,matchMapB);
+ countA.textContent=ra.length;countB.textContent=rb.length;matches.textContent=matchMapA.size;missing.textContent=ra.length-matchMapA.size;
+ applyRowFilter();
+}
+function renderTable(side,data,map){
+ const table=document.getElementById('table'+side); if(!data.length){table.innerHTML='<tbody><tr><td class="empty">Sin datos</td></tr></tbody>';return}
+ const head=`<thead><tr><th>#</th>${headers(data).map(h=>`<th title="${escapeHtml(h)}">${escapeHtml(h)}</th>`).join('')}</tr></thead>`;
+ const body=rows(data).map((r,i)=>`<tr id="row${side}-${i}" class="${map.has(i)?'match':'no-match'}" onclick="selectRow('${side}',${i})"><td class="rownum">${i+1}</td>${headers(data).map((_,c)=>`<td title="${escapeHtml(r[c]??'')}">${escapeHtml(r[c]??'')}</td>`).join('')}</tr>`).join('');
+ table.innerHTML=head+`<tbody>${body}</tbody>`;
+}
+function filterRows(filter){
+ currentFilter=filter;
+ document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+ const buttonId=filter==='all'?'showAllBtn':filter==='onlyA'?'onlyABtn':'onlyBBtn';
+ document.getElementById(buttonId)?.classList.add('active');
+ applyRowFilter();
+ const total=filter==='onlyA'?rows(dataA).length-matchMapA.size:filter==='onlyB'?rows(dataB).length-matchMapB.size:rows(dataA).length+rows(dataB).length;
+ toast(filter==='all'?'Mostrando todos los elementos':`${total} elemento${total!==1?'s':''} sin coincidencia`);
+}
+function applyRowFilter(){
+ const rowsA=document.querySelectorAll('#tableA tbody tr');
+ const rowsB=document.querySelectorAll('#tableB tbody tr');
+ rowsA.forEach((tr,i)=>tr.classList.toggle('hidden-row',currentFilter==='onlyA'?matchMapA.has(i):currentFilter==='onlyB'));
+ rowsB.forEach((tr,i)=>tr.classList.toggle('hidden-row',currentFilter==='onlyB'?matchMapB.has(i):currentFilter==='onlyA'));
+}
+function selectRow(side,index){
+ document.querySelectorAll('tbody tr').forEach(r=>r.classList.remove('selected','linked'));
+ const source=document.getElementById(`row${side}-${index}`);source?.classList.add('selected');
+ const map=side==='A'?matchMapA:matchMapB, other=side==='A'?'B':'A', found=map.get(index)||[];
+ if(found.length){found.forEach(i=>document.getElementById(`row${other}-${i}`)?.classList.add('linked'));const target=document.getElementById(`row${other}-${found[0]}`);target?.classList.add('selected');target?.scrollIntoView({behavior:'smooth',block:'center'});toast(`${found.length} coincidencia${found.length!==1?'s':''} encontrada${found.length!==1?'s':''}`)}
+ else toast('No se encontró un elemento equivalente');
+}
+function detectDelimiter(text){const line=(text.split(/\r?\n/).find(x=>x.trim())||'');const candidates=['\t',';',','];return candidates.sort((a,b)=>line.split(b).length-line.split(a).length)[0]}
+function parseDelimited(text){
+ const d=detectDelimiter(text), out=[];let row=[],cell='',quote=false;
+ for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(ch==='"'&&quote&&next==='"'){cell+='"';i++}else if(ch==='"'){quote=!quote}else if(ch===d&&!quote){row.push(cell.trim());cell=''}else if((ch==='\n'||ch==='\r')&&!quote){if(ch==='\r'&&next==='\n')i++;row.push(cell.trim());if(row.some(x=>x!==''))out.push(row);row=[];cell=''}else cell+=ch}
+ row.push(cell.trim());if(row.some(x=>x!==''))out.push(row);const width=Math.max(0,...out.map(r=>r.length));return out.map(r=>Array.from({length:width},(_,i)=>r[i]??''));
+}
+function openPaste(side){pasteTarget=side;pasteTitle.textContent=`Pegar Lista ${side}`;pasteArea.value='';pasteDialog.showModal();pasteArea.focus()}
+function applyPaste(){const parsed=parseDelimited(pasteArea.value);if(parsed.length<2){toast('Incluye encabezados y al menos una fila');return}if(pasteTarget==='A')dataA=parsed;else dataB=parsed;pasteDialog.close();setupColumns();compareLists();toast(`Lista ${pasteTarget} cargada`)}
+fileInput.addEventListener('change',async e=>{const files=[...e.target.files].slice(0,2);for(let i=0;i<files.length;i++){const parsed=parseDelimited(await files[i].text());if(parsed.length){if(i===0)dataA=parsed;else dataB=parsed}}setupColumns();compareLists();toast(files.length===1?'Archivo cargado en Lista A':'Archivos cargados en ambas listas');e.target.value=''})
+;['colA','colB','mode','caseSensitive','trim'].forEach(id=>document.getElementById(id).addEventListener('change',compareLists));
+function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),2200)}
+resetDemo();
+</script>
+</body>
+</html>
